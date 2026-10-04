@@ -1,0 +1,45 @@
+name: Portfolio cleanup
+on:
+  push:
+    paths: ['.github/workflows/cleanup.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: De-brand captions and point About to the org
+        run: |
+          python3 - <<'PY'
+          import io
+          edits = {
+            "projects/ti-nspire-internet-link.html": [
+              ("in a printed shell embossed nternet-link and OtterCAD", "in a printed shell embossed with the project name"),
+              ("The printed shell carries the project name on one side and OtterCAD on the other.", "The printed shell carries the project name."),
+            ],
+            "de/projects/ti-nspire-internet-link.html": [
+              ("in einem gedruckten Gehäuse mit den Prägungen nternet-link und OtterCAD", "in einem gedruckten Gehäuse mit der Prägung des Projektnamens"),
+              ("Das gedruckte Gehäuse trägt auf einer Seite den Projektnamen und auf der anderen OtterCAD.", "Das gedruckte Gehäuse trägt den Projektnamen."),
+            ],
+            "index.html": [
+              ('publish open hardware on <a href="https://github.com/WilliamOtterson">', 'publish open hardware on <a href="https://github.com/nspired-Hackers">'),
+            ],
+            "de/index.html": [
+              ('Open Hardware auf <a href="https://github.com/WilliamOtterson">', 'Open Hardware auf <a href="https://github.com/nspired-Hackers">'),
+            ],
+          }
+          for path, subs in edits.items():
+            s = io.open(path, encoding="utf-8").read()
+            for a, b in subs:
+              assert a in s, "MISSING in %s: %s" % (path, a)
+              s = s.replace(a, b)
+            io.open(path, "w", encoding="utf-8").write(s)
+          print("ok")
+          PY
+          git rm -q .github/workflows/cleanup.yml
+          git config user.name "William Otterson"
+          git config user.email "william.otterson.eng@gmail.com"
+          git commit -q -am "De-brand hardware captions; point open-hardware link to the org"
+          git push
